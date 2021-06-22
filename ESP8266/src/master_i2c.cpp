@@ -88,6 +88,16 @@ bool MasterI2C::getUint16(uint16_t &value, uint8_t &crc) {
     return false;
 }
 
+bool MasterI2C::getInt16(int16_t &value, uint8_t &crc) {
+
+    uint16_t u;
+    if (getUint16(u, crc)) {
+        memcpy(&value, &u, sizeof value);
+        return true;
+    }
+    return false;
+}
+
 bool MasterI2C::getUint(uint32_t &value, uint8_t &crc) {
 
     uint8_t i1, i2, i3, i4;
@@ -125,7 +135,8 @@ bool MasterI2C::    getSlaveData(SlaveData &data) {
     uint8_t dummy, crc = 0;
     bool good = getByte(data.version, crc);
     good &= getByte(data.service, crc);
-    good &= getUint(data.voltage, crc);
+    good &= getUint16(data.voltage, crc);
+    good &= getUint16(data.wakeup_min, crc);
 
     good &= getByte(data.resets, crc);
     good &= getByte(data.model, crc);
@@ -138,6 +149,8 @@ bool MasterI2C::    getSlaveData(SlaveData &data) {
     good &= getUint16(data.adc0, crc);
     good &= getUint16(data.adc1, crc);
 
+    good &= getInt16(data.wdt, crc);
+
     good &= getByte(data.crc, dummy);
 
     if (good) {
@@ -147,10 +160,13 @@ bool MasterI2C::    getSlaveData(SlaveData &data) {
     switch (data.diagnostic) {
         case WATERIUS_BAD_CRC:
             LOG_ERROR(FPSTR(S_I2C), F("CRC wrong"));
+        case WATERIUS_NO_LINK:
+            LOG_ERROR(FPSTR(S_I2C), F("==== READ i2c FAILED ===="));
         case WATERIUS_OK:
             LOG_INFO(FPSTR(S_I2C), F("version: ") << data.version);
             LOG_INFO(FPSTR(S_I2C), F("service: ") << data.service);
             LOG_INFO(FPSTR(S_I2C), F("voltage: ") << data.voltage);
+            LOG_INFO(FPSTR(S_I2C), F("wakeup_min: ") << data.wakeup_min);
             LOG_INFO(FPSTR(S_I2C), F("resets: ") << data.resets);
             LOG_INFO(FPSTR(S_I2C), F("MODEL: ") << data.model);
             LOG_INFO(FPSTR(S_I2C), F("state0: ") << data.state0);
@@ -159,10 +175,7 @@ bool MasterI2C::    getSlaveData(SlaveData &data) {
             LOG_INFO(FPSTR(S_I2C), F("impulses1: ") << data.impulses1);
             LOG_INFO(FPSTR(S_I2C), F("adc0: ") << data.adc0);
             LOG_INFO(FPSTR(S_I2C), F("adc1: ") << data.adc1);
-            LOG_INFO(FPSTR(S_I2C), F("CRC ok"));
-        break;
-        case WATERIUS_NO_LINK:
-            LOG_ERROR(FPSTR(S_I2C), F("Data failed"));
+            LOG_INFO(FPSTR(S_I2C), F("wdt: ") << data.wdt);
     };
 
     return data.diagnostic == WATERIUS_OK;

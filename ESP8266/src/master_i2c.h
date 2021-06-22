@@ -30,7 +30,8 @@ struct SlaveData {
     // Header
     uint8_t  version;     //Версия ПО Attiny
     uint8_t  service;     //Причина загрузки Attiny
-    uint32_t voltage;     //Напряжение питания в мВ (после включения wi-fi под нагрузкой )
+    uint16_t voltage;     //Напряжение питания в мВ (после включения wi-fi под нагрузкой )
+    uint16_t wakeup_min;  //Период пробуждения (проверим как записался)
 
     uint8_t  resets;   
     uint8_t  model;       //WATERIUS_CLASSIC или  WATERIUS_4C2W 
@@ -40,7 +41,8 @@ struct SlaveData {
     uint32_t impulses1;   //           канал 1
     uint16_t adc0;        //Уровень,   канал 0
     uint16_t adc1;        //           канал 1
-    
+    int16_t  wdt;         //таймер
+
     // HEADER_DATA_SIZE
 
     uint8_t  crc;         //Всегда в конце структуры данных
@@ -59,6 +61,7 @@ class MasterI2C
 protected:
     bool getUint(uint32_t &value, uint8_t &crc);
     bool getUint16(uint16_t &value, uint8_t &crc);
+    bool getInt16(int16_t &value, uint8_t &crc);
     bool getByte(uint8_t &value, uint8_t &crc);
     bool sendData(uint8_t* buf, size_t size);
 public:

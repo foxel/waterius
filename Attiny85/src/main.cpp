@@ -17,10 +17,15 @@
 #endif
 
 
-#define FIRMWARE_VER 20    // Версия прошивки. Передается в ESP и на сервер в данных.
+#define FIRMWARE_VER 21    // Версия прошивки. Передается в ESP и на сервер в данных.
   
 /*
 Версии прошивок 
+
+21 - 2021.06.22 - dontsovcmc
+    1. период передаем в esp назад (для контроля)
+    2. поле voltage uint16 (достаточно)
+	3. добавил wdt в данные к esp
 
 20 - 2021.05.31 - dontsovcmc
     1. atmelavr@3.3.0
@@ -101,14 +106,12 @@ static ButtonB  button(2);	   // PB2 кнопка (на линии SCL)
 static ESPPowerPin esp(1);  // Питание на ESP 
 
 // Данные
-struct Header info = {FIRMWARE_VER, 0, 0, 0, WATERIUS_2C, 
+struct Header info = {FIRMWARE_VER, 0, 0, 0, 0, WATERIUS_2C, 
 					   {CounterState_e::CLOSE, CounterState_e::CLOSE},
 				       {0, 0},
 					   {0, 0},
-					    0, 0
+					    0, 0, 0
 					 };
-
-int16_t wakeup_period_min;
 
 //Кольцевой буфер для хранения показаний на случай замены питания или перезагрузки
 //Кольцовой нужен для того, чтобы превысить лимит записи памяти в 100 000 раз
@@ -118,7 +121,7 @@ static EEPROMStorage<Data> storage(20); // 8 byte * 20 + crc * 20
 
 SlaveI2C slaveI2C;
 
-volatile int wdt_count; // таймер может быть < 0 ?
+volatile int16_t wdt_count; // таймер может быть < 0 ?
 
 /* Вектор прерываний сторожевого таймера watchdog */
 ISR( WDT_vect ) { 
@@ -190,8 +193,7 @@ void setup() {
 		EEPROM.write(storage.size(), 0);
 	}
 
-
-	wakeup_period_min = WAKEUP_DEFAULT_PER_MIN;
+	info.wakeup_period_min = WAKEUP_DEFAULT_PER_MIN;
 
 	LOG_BEGIN(9600); 
 	LOG(F("==== START ===="));
@@ -218,7 +220,8 @@ void loop() {
 	// Цикл опроса входов
 	// Выход по прошествию WAKE_EVERY_MIN минут или по нажатию кнопки
 	for (unsigned int i = 0; i < ONE_MINUTE && !button.pressed(); ++i)  {
-		wdt_count = wakeup_period_min;
+		wdt_count = info.wakeup_period_min;
+		
 		while ( wdt_count > 0 ) {
 			noInterrupts();
 
@@ -238,6 +241,7 @@ void loop() {
 	power_all_enable();   // power everything back on
 
 	storage.get(info.data);     // Берем из хранилища текущие значения импульсов
+	info.wdt = wdt_count;
 
 	LOG_BEGIN(9600);
 	LOG(F("Data:"));

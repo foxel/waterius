@@ -91,7 +91,13 @@ struct Header {
     /*
     Напряжение питания в мВ.
     */
-    uint32_t      voltage;
+    uint16_t      voltage;
+
+    /*
+    Период пробуждения ESP. 
+    Получает значение от ESP при каждом пробуждении.
+     */ 
+    uint16_t      wakeup_period_min;
     
     /*
     Количество перезагрузок.
@@ -109,13 +115,15 @@ struct Header {
     Data          data;
     ADCLevel      adc;
 
+    int16_t       wdt;
+
     // HEADER_DATA_SIZE
 
     uint8_t       crc;
     uint8_t       reserved2;
-};  //22 байт
+};  //24 байт
 
-#define HEADER_DATA_SIZE 22
+#define HEADER_DATA_SIZE 24
 
 #define TX_BUFFER_SIZE HEADER_DATA_SIZE + 2
 
